@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Schlag den Gegner – Scoreboard</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Anton&family=Orbitron:wght@700;900&family=Oswald:wght@600;700&display=swap');
+
+    :root {
+      --bg-dark: #030b1a;
+      --bg-blue: #0a2a66;
+      --gold-light: #ffe600;
+      --gold-dark: #ff8c00;
+      --red-glow: #ff2a2a;
+      --blue-glow: #29b6ff;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background: radial-gradient(circle at 50% 25%, #11439c 0%, #06183d 48%, #020814 100%);
+      color: #fff;
+      font-family: 'Oswald', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Studio Spotlights & Beams */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(circle at 8% 6%, rgba(160, 225, 255, 0.85) 0%, rgba(41, 182, 255, 0.25) 6%, transparent 22%),
+        radial-gradient(circle at 92% 6%, rgba(160, 225, 255, 0.85) 0%, rgba(41, 182, 255, 0.25) 6%, transparent 22%),
+        conic-gradient(from 135deg at 8% 6%, rgba(120, 200, 255, 0.16) 0deg, transparent 35deg),
+        conic-gradient(from 190deg at 92% 6%, rgba(120, 200, 255, 0.16) 0deg, transparent 35deg);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Top Control Bar */
+    .top-bar {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      padding: 10px 18px 0;
+    }
+
+    .ctrl-btn {
+      background: rgba(8, 25, 60, 0.8);
+      border: 1px solid rgba(130, 190, 255, 0.4);
+      color: #d6ecff;
+      font-family: 'Oswald', sans-serif;
+      font-size: 0.85rem;
+      letter-spacing: 1px;
+      padding: 5px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-transform: uppercase;
+    }
+
+    .ctrl-btn:hover {
+      background: rgba(30, 80, 170, 0.9);
+      border-color: #fff;
+      color: #fff;
+    }
+
+    /* Header & Logo */
+    .header-logo-wrap {
+      position: relative;
+      z-index: 5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-top: -10px;
+      padding: 0 12px;
+    }
+
+    .logo-container {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      filter: drop-shadow(0 10px 25px rgba(0, 0, 0, 0.75));
+    }
+
+    .wreath-svg {
+      width: 68px;
+      height: 155px;
+      flex-shrink: 0;
+    }
+
+    .wreath-right {
+      transform: scaleX(-1);
+    }
+
+    .logo-oval {
+      background: radial-gradient(ellipse at center, #fff01a 0%, #ffc400 55%, #f58200 100%);
+      border: 4px solid #e6e9ef;
+      box-shadow:
+        inset 0 0 15px rgba(255, 255, 255, 0.6),
+        0 0 0 3px #7a8394,
+        0 8px 20px rgba(0, 0, 0, 0.65);
+      border-radius: 95px / 75px;
+      padding: 10px 34px;
+      margin: 0 -16px;
+      text-align: center;
+      line-height: 0.92;
+      z-index: 2;
+    }
+
+    .logo-line-1 {
+      font-family: 'Anton', sans-serif;
+      font-size: clamp(2rem, 4vw, 3.1rem);
+      color: #141414;
+      letter-spacing: 2px;
+      -webkit-text-stroke: 1.5px #d4d8df;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+    }
+
+    .logo-line-2 {
+      font-family: 'Anton', sans-serif;
+      font-size: clamp(1.1rem, 2.2vw, 1.65rem);
+      color: #141414;
+      letter-spacing: 2px;
+      -webkit-text-stroke: 1px #d4d8df;
+      margin: 2px 0;
+    }
+
+    .logo-line-3 {
+      font-family: 'Anton', sans-serif;
+      font-size: clamp(2.1rem, 4.2vw, 3.25rem);
+      color: #141414;
+      letter-spacing: 2px;
+      -webkit-text-stroke: 1.5px #d4d8df;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+    }
+
+    /* Main Arena Grid */
+    .arena {
+      position: relative;
+      z-index: 5;
+      display: grid;
+      grid-template-columns: 1fr minmax(270px, 360px) 1fr;
+      align-items: center;
+      gap: 20px;
+      max-width: 1320px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 10px 28px;
+      flex: 1;
+    }
+
+    /* Player Panels */
+    .player-column {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .player-name {
+      font-family: 'Anton', sans-serif;
+      font-size: clamp(2rem, 3.8vw, 3.3rem);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #ffffff;
+      text-shadow: 0 4px 14px rgba(0, 0, 0, 0.85), 0 0 20px rgba(255, 255, 255, 0.25);
+      margin-bottom: 10px;
+      cursor: pointer;
+      padding: 2px 14px;
+      border-radius: 8px;
+      border: 1px dashed transparent;
+      transition: border-color 0.2s;
+      text-align: center;
+    }
+
+    .player-name:hover {
+      border-color: rgba(255, 255, 255, 0.45);
+    }
+
+    .left-tilt {
+      transform: perspective(700px) rotateY(10deg);
+    }
+
+    .right-tilt {
+      transform: perspective(700px) rotateY(-10deg);
+    }
+
+    /* Metallic LED Monitor Frame */
+    .monitor-frame {
+      width: 100%;
+      max-width: 390px;
+      aspect-ratio: 4 / 3;
+      background: linear-gradient(145deg, #f0f4f8 0%, #9aa6b8 35%, #5b6678 70%, #cfd8e3 100%);
+      border-radius: 26px;
+      padding: 16px;
+      box-shadow:
+        0 18px 40px rgba(0, 0, 0, 0.85),
+        inset 0 2px 4px rgba(255, 255, 255, 0.9),
+        inset 0 -4px 8px rgba(20, 28, 40, 0.8);
+      position: relative;
+    }
+
+    .monitor-screen {
+      width: 100%;
+      height: 100%;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      box-shadow: inset 0 0 35px rgba(0, 0, 0, 0.95);
+    }
+
+    /* Dot matrix texture */
+    .monitor-screen::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(rgba(0, 0, 0, 0.45) 1px, transparent 1px);
+      background-size: 6px 6px;
+      pointer-events: none;
+    }
+
+    .monitor-red {
+      background: radial-gradient(circle at center, #6b0808 0%, #2b0202 85%);
+      border: 3px solid #ff4b4b;
+      box-shadow: inset 0 0 35px #000, 0 0 24px rgba(255, 42, 42, 0.5);
+    }
+
+    .monitor-blue {
+      background: radial-gradient(circle at center, #08417a 0%, #021833 85%);
+      border: 3px solid #38c0ff;
+      box-shadow: inset 0 0 35px #000, 0 0 24px rgba(41, 182, 255, 0.5);
+    }
+
+    .led-score {
+      font-family: 'Orbitron', monospace;
+      font-weight: 900;
+      font-size: clamp(5.5rem, 10vw, 8.8rem);
+      color: #ffffff;
+      letter-spacing: 4px;
+      z-index: 2;
+      line-height: 1;
+    }
+
+    .monitor-red .led-score {
+      text-shadow:
+        0 0 12px #ffffff,
+        0 0 28px #ff2a2a,
+        0 0 55px #ff0000;
+    }
+
+    .monitor-blue .led-score {
+      text-shadow:
+        0 0 12px #ffffff,
+        0 0 28px #29b6ff,
+        0 0 55px #0088ff;
+    }
+
+    /* Metallic + / - Buttons */
+    .score-controls {
+      display: flex;
+      gap: 28px;
+      margin-top: 18px;
+    }
+
+    .metal-btn {
+      width: 68px;
+      height: 68px;
+      border-radius: 50%;
+      border: 4px solid #dce3ec;
+      background: radial-gradient(circle at 30% 30%, #8a96a8 0%, #3d4654 65%, #1f252e 100%);
+      box-shadow:
+        0 8px 18px rgba(0, 0, 0, 0.8),
+        inset 0 2px 5px rgba(255, 255, 255, 0.75);
+      color: #fff;
+      font-family: 'Arial Black', sans-serif;
+      font-size: 2.2rem;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.12s, box-shadow 0.15s;
+    }
+
+    .metal-btn:hover {
+      transform: scale(1.08);
+    }
+
+    .metal-btn:active {
+      transform: scale(0.95);
+    }
+
+    .btn-red-glow {
+      color: #ff9c9c;
+      text-shadow: 0 0 12px #ff2a2a, 0 0 22px #ff0000;
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.8), 0 0 16px rgba(255, 42, 42, 0.45), inset 0 2px 5px rgba(255, 255, 255, 0.7);
+    }
+
+    .btn-blue-glow {
+      color: #a6e4ff;
+      text-shadow: 0 0 12px #29b6ff, 0 0 22px #0088ff;
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.8), 0 0 16px rgba(41, 182, 255, 0.45), inset 0 2px 5px rgba(255, 255, 255, 0.7);
+    }
+
+    .points-caption {
+      margin-top: 10px;
+      font-family: 'Oswald', sans-serif;
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      color: #e8f1ff;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
+      text-transform: uppercase;
+    }
+
+    /* Center Coins & Matchball */
+    .center-column {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .round-banner {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: linear-gradient(180deg, rgba(14, 38, 84, 0.9) 0%, rgba(5, 16, 40, 0.95) 100%);
+      border: 2px solid #8fa4c4;
+      border-radius: 30px;
+      padding: 6px 20px;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.7);
+    }
+
+    .round-banner-text {
+      font-family: 'Oswald', sans-serif;
+      font-size: 1.45rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: #ffca28;
+      text-shadow: 0 0 10px rgba(255, 202, 40, 0.6);
+      cursor: pointer;
+    }
+
+    .coins-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      padding: 8px;
+    }
+
+    .coin {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: 3px solid #e2e8f0;
+      background: radial-gradient(circle at 32% 28%, #ffffff 0%, #c8d1de 45%, #7e8a9c 85%, #4e5866 100%);
+      box-shadow:
+        0 5px 10px rgba(0, 0, 0, 0.75),
+        inset 0 2px 3px rgba(255, 255, 255, 0.9);
+      color: #111827;
+      font-family: 'Oswald', sans-serif;
+      font-weight: 700;
+      font-size: 1.35rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .coin:hover {
+      transform: translateY(-2px) scale(1.06);
+    }
+
+    .coin.active {
+      background: radial-gradient(circle at 35% 30%, #fff78a 0%, #ffc400 55%, #e67e00 100%);
+      border-color: #fff3b0;
+      color: #141414;
+      transform: scale(1.14);
+      box-shadow:
+        0 0 18px #ffc400,
+        0 0 32px rgba(255, 174, 0, 0.85),
+        inset 0 2px 4px #ffffff;
+    }
+
+    .coin.won-red {
+      background: radial-gradient(circle at 35% 30%, #ff8a8a 0%, #e51c1c 60%, #7a0606 100%);
+      border-color: #ffb3b3;
+      color: #ffffff;
+      box-shadow: 0 0 12px rgba(255, 42, 42, 0.75);
+    }
+
+    .coin.won-blue {
+      background: radial-gradient(circle at 35% 30%, #8ae0ff 0%, #0d8ce0 60%, #053b6e 100%);
+      border-color: #bceeff;
+      color: #ffffff;
+      box-shadow: 0 0 12px rgba(41, 182, 255, 0.75);
+    }
+
+    /* Quick Award Buttons for Active Game */
+    .quick-award {
+      display: flex;
+      gap: 10px;
+      width: 100%;
+      justify-content: center;
+    }
+
+    .award-btn {
+      flex: 1;
+      max-width: 155px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 2px solid rgba(255, 255, 255, 0.65);
+      font-family: 'Oswald', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      color: #fff;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: transform 0.15s, filter 0.15s;
+      box-shadow: 0 5px 14px rgba(0, 0, 0, 0.65);
+    }
+
+    .award-btn:hover {
+      transform: scale(1.04);
+      filter: brightness(1.15);
+    }
+
+    .award-red {
+      background: linear-gradient(180deg, #e52525 0%, #8f0b0b 100%);
+    }
+
+    .award-blue {
+      background: linear-gradient(180deg, #1b9ce5 0%, #094b82 100%);
+    }
+
+    /* Matchball Box */
+    .matchball-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 6px;
+    }
+
+    .matchball-title {
+      font-family: 'Oswald', sans-serif;
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: #ffca28;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.9);
+      margin-bottom: 4px;
+    }
+
+    .matchball-pill {
+      background: linear-gradient(180deg, #2a3342 0%, #0e131c 100%);
+      border: 3px solid #cfd8e3;
+      border-radius: 999px;
+      padding: 5px 30px;
+      font-family: 'Oswald', sans-serif;
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      color: #ffffff;
+      box-shadow:
+        0 6px 16px rgba(0, 0, 0, 0.8),
+        inset 0 1px 3px rgba(255, 255, 255, 0.5);
+      transition: all 0.3s;
+    }
+
+    .matchball-pill.alert {
+      background: linear-gradient(180deg, #ffd000 0%, #ff7b00 100%);
+      color: #111;
+      border-color: #fff;
+      box-shadow: 0 0 24px #ffae00;
+      animation: pulseGlow 1.1s infinite alternate;
+    }
+
+    @keyframes pulseGlow {
+      from { transform: scale(1); }
+      to { transform: scale(1.06); }
+    }
+
+    /* Bottom Studio Bar */
+    .bottom-bar {
+      position: relative;
+      z-index: 5;
+      width: 100%;
+      padding: 12px 24px 14px;
+      background: linear-gradient(180deg, rgba(6, 22, 54, 0.6) 0%, rgba(2, 9, 24, 0.96) 100%);
+      border-top: 3px solid #c5d1e0;
+      box-shadow: 0 -6px 25px rgba(0, 0, 0, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 22px;
+    }
+
+    .chevrons {
+      color: #9cb0cc;
+      font-size: 1.4rem;
+      letter-spacing: -4px;
+      opacity: 0.75;
+    }
+
+    .spielstand-pill {
+      background: linear-gradient(180deg, #16294a 0%, #071124 100%);
+      border: 2px solid #9cb0cc;
+      border-radius: 8px;
+      padding: 4px 44px;
+      font-family: 'Oswald', sans-serif;
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: 3px;
+      color: #ffffff;
+      text-transform: uppercase;
+    }
+
+    .nav-arrows {
+      position: absolute;
+      right: 28px;
+      display: flex;
+      gap: 10px;
+    }
+
+    .nav-circle {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 2px solid #dce3ec;
+      background: radial-gradient(circle at 30% 30%, #7c899e 0%, #2b3340 100%);
+      color: #fff;
+      font-size: 0.95rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.7);
+    }
+
+    .nav-circle:hover {
+      filter: brightness(1.2);
+    }
+
+    /* Winner Overlay */
+    .winner-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 8, 22, 0.86);
+      z-index: 100;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .winner-overlay.show {
+      display: flex;
+    }
+
+    .winner-card {
+      background: radial-gradient(circle at center, #143d8a 0%, #061638 100%);
+      border: 4px solid #ffd000;
+      border-radius: 28px;
+      padding: 36px 54px;
+      box-shadow: 0 0 60px rgba(255, 208, 0, 0.65);
+    }
+
+    .winner-sub {
+      font-size: 1.5rem;
+      letter-spacing: 3px;
+      color: #ffca28;
+      text-transform: uppercase;
+    }
+
+    .winner-name {
+      font-family: 'Anton', sans-serif;
+      font-size: clamp(3rem, 7vw, 5.5rem);
+      color: #ffffff;
+      text-shadow: 0 0 25px rgba(255, 255, 255, 0.8);
+      margin: 10px 0 24px;
+    }
+
+    @media (max-width: 960px) {
+      .arena {
+        grid-template-columns: 1fr;
+        gap: 24px;
+      }
+      .left-tilt, .right-tilt {
+        transform: none;
+      }
+      .nav-arrows {
+        position: static;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="top-bar">
+    <button class="ctrl-btn" onclick="toggleSound()" id="soundBtn">🔊 Ton: AN</button>
+    <button class="ctrl-btn" onclick="toggleFullscreen()">⛶ Vollbild</button>
+    <button class="ctrl-btn" onclick="resetGame()">↺ Reset</button>
+  </div>
+
+  <!-- Header Logo -->
+  <header class="header-logo-wrap">
+    <div class="logo-container">
+      <!-- Left Metallic Laurel Wreath -->
+      <svg class="wreath-svg" viewBox="0 0 90 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="silverGrad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#ffffff"/>
+            <stop offset="45%" stop-color="#b8c2d1"/>
+            <stop offset="75%" stop-color="#6e798a"/>
+            <stop offset="100%" stop-color="#e2e8f0"/>
+          </linearGradient>
+        </defs>
+        <path d="M72 188 C25 160, 12 105, 28 45 C35 22, 50 10, 65 4" stroke="url(#silverGrad)" stroke-width="4" stroke-linecap="round"/>
+        <path d="M62 184 C42 186, 28 176, 22 162 C38 164, 52 172, 62 184 Z" fill="url(#silverGrad)" stroke="#475569" stroke-width="1"/>
+        <path d="M46 164 C24 162, 12 148, 10 132 C26 136, 38 148, 46 164 Z" fill="url(#silverGrad)" stroke="#475569" stroke-width="1"/>
+        <path d="M34 138 C12 132, 4 115, 6 98 C20 106, 30 120, 34 138 Z" fill="url(#silverGrad)" stroke="#475569" stroke-width="1"/>
+        <path d="M28 110 C8 100, 4 82, 10 66 C22 76, 28 92, 28 110 Z" fill="url(#silverGrad)" stroke="#475569" stroke-width="1"/>
+        <path d="M30 80 C14 66, 14 48, 22 34 C32 46, 34 62, 30 80 Z" fill="url(#silverGrad)" stroke="#475569" stroke-width="1"/>
+        <path d="M38 52 C26 36, 30 20, 42 10 C48 24, 46 38, 38 52 Z" fill="url(#silverGrad)" stroke="#475569" stroke-width="1"/>
+        <path d="M52 28 C46 14, 52 4, 65 2 C65 14, 60 22, 52 28 Z" fill="url(#silverGrad)" stroke="#475569" stroke-width="1"/>
+      </svg>
+
+      <div class="logo-oval">
+        <div class="logo-line-1">SCHLAG</div>
+        <div class="logo-line-2">DEN</div>
+        <div class="logo-line-3">GEGNER</div>
+      </div>
+
+      <!-- Right Metallic Laurel Wreath -->
+      <svg class="wreath-svg wreath-right" viewBox="0 0 90 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M72 188 C25 160, 12 105, 28 45 C35 22, 50 10, 65 4" stroke="url(#silverGrad)" stroke-width="4" stroke-linecap="round"/>
+        <path d="M62 184 C42 186, 28 176, 22 162 C38 164, 52 172, 62 184 Z" fill="url(#silverGrad)" stroke="#475569" stroke-width="1"/>
+        <path d="M46 164 C24 162, 12 148, 10 132 C26 136, 38 148, 46 164 Z" fill="url(#silverGrad)" stroke="#475569" stroke-width="1"/>
+        <path d="M34 138 C12 132, 4 115, 6 98 C20 106, 30 120, 34 138 Z" fill="url(#silverGrad)" stroke="#475569" stroke-width="1"/>
+        <path d="M28 110 C8 100, 4 82, 10 66 C22 76, 28 92, 28 110 Z" fill="url(#silverGrad)" stroke="#475569" stroke-width="1"/>
+        <path d="M30 80 C14 66, 14 48, 22 34 C32 46, 34 62, 30 80 Z" fill="url(#silverGrad)" stroke="#475569" stroke-width="1"/>
+        <path d="M38 52 C26 36, 30 20, 42 10 C48 24, 46 38, 38 52 Z" fill="url(#silverGrad)" stroke="#475569" stroke-width="1"/>
+        <path d="M52 28 C46 14, 52 4, 65 2 C65 14, 60 22, 52 28 Z" fill="url(#silverGrad)" stroke="#475569" stroke-width="1"/>
+      </svg>
+    </div>
+  </header>
+
+  <!-- Main Scoreboard Arena -->
+  <main class="arena">
+    <!-- Left Player: Kandidat -->
+    <section class="player-column">
+      <div class="player-name" id="nameLeft" onclick="editName('Left')" title="Klicken zum Umbenennen">KANDIDAT</div>
+      <div class="monitor-frame left-tilt">
+        <div class="monitor-screen monitor-red">
+          <div class="led-score" id="scoreLeft">00</div>
+        </div>
+      </div>
+      <div class="score-controls">
+        <button class="metal-btn btn-red-glow" onclick="changeScore('Left', 1)" title="+1 Punkt">+</button>
+        <button class="metal-btn btn-red-glow" onclick="changeScore('Left', -1)" title="-1 Punkt">−</button>
+      </div>
+      <div class="points-caption" id="captionLeft">0 PUNKTE</div>
+    </section>
+
+    <!-- Center: 15 Coins & Matchball -->
+    <section class="center-column">
+      <div class="round-banner">
+        <span class="round-banner-text" id="activeGameLabel" onclick="editGameTitle()" title="Klicken um Spielnamen zu ändern">SPIEL 1 (1 PKT)</span>
+      </div>
+
+      <div class="coins-grid" id="coinsGrid"></div>
+
+      <div class="quick-award">
+        <button class="award-btn award-red" id="awardLeftBtn" onclick="awardRound('Left')">+1 AN KANDIDAT</button>
+        <button class="award-btn award-blue" id="awardRightBtn" onclick="awardRound('Right')">+1 AN GEGNER</button>
+      </div>
+
+      <div class="matchball-wrap">
+        <div class="matchball-title" id="matchballTitle">MATCHBALL</div>
+        <div class="matchball-pill" id="matchballPill">61 PUNKTE</div>
+      </div>
+    </section>
+
+    <!-- Right Player: Gegner -->
+    <section class="player-column">
+      <div class="player-name" id="nameRight" onclick="editName('Right')" title="Klicken zum Umbenennen">GEGNER</div>
+      <div class="monitor-frame right-tilt">
+        <div class="monitor-screen monitor-blue">
+          <div class="led-score" id="scoreRight">00</div>
+        </div>
+      </div>
+      <div class="score-controls">
+        <button class="metal-btn btn-blue-glow" onclick="changeScore('Right', 1)" title="+1 Punkt">+</button>
+        <button class="metal-btn btn-blue-glow" onclick="changeScore('Right', -1)" title="-1 Punkt">−</button>
+      </div>
+      <div class="points-caption" id="captionRight">0 PUNKTE</div>
+    </section>
+  </main>
+
+  <!-- Bottom Bar -->
+  <footer class="bottom-bar">
+    <div class="chevrons">❮❮❮❮</div>
+    <div class="spielstand-pill">SPIELSTAND</div>
+    <div class="chevrons">❯❯❯❯</div>
+
+    <div class="nav-arrows">
+      <button class="nav-circle" onclick="stepRound(-1)" title="Vorheriges Spiel">◀</button>
+      <button class="nav-circle" onclick="stepRound(1)" title="Nächstes Spiel">▶</button>
+    </div>
+  </footer>
+
+  <!-- Winner Modal -->
+  <div class="winner-overlay" id="winnerOverlay">
+    <div class="winner-card">
+      <div class="winner-sub">🏆 SIEGER DER SHOW 🏆</div>
+      <div class="winner-name" id="winnerNameText">KANDIDAT</div>
+      <button class="ctrl-btn" style="font-size:1.1rem; padding:10px 24px;" onclick="closeWinner()">Weiterspielen / Schließen</button>
+    </div>
+  </div>
+
+  <script>
+    let scoreLeft = 0;
+    let scoreRight = 0;
+    let activeRound = 1;
+    let soundEnabled = true;
+    let winnerAnnounced = false;
+
+    const roundWinners = {}; // { 1: 'Left' | 'Right' }
+    const gameNames = {};    // custom names per round
+
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+
+    function playTone(freqs, duration = 0.16) {
+      if (!soundEnabled) return;
+      if (!audioCtx) audioCtx = new AudioCtx();
+      const now = audioCtx.currentTime;
+      freqs.forEach((f, idx) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(f, now + idx * 0.09);
+        gain.gain.setValueAtTime(0.18, now + idx * 0.09);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.09 + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now + idx * 0.09);
+        osc.stop(now + idx * 0.09 + duration);
+      });
+    }
+
+    function renderCoins() {
+      const grid = document.getElementById('coinsGrid');
+      grid.innerHTML = '';
+      for (let i = 1; i <= 15; i++) {
+        const coin = document.createElement('div');
+        coin.className = 'coin';
+        if (i === activeRound) coin.classList.add('active');
+        if (roundWinners[i] === 'Left') coin.classList.add('won-red');
+        if (roundWinners[i] === 'Right') coin.classList.add('won-blue');
+        coin.textContent = i;
+        coin.title = gameNames[i] ? `Spiel ${i}: ${gameNames[i]} (${i} Punkte)` : `Spiel ${i} (${i} Punkte)`;
+        coin.onclick = () => {
+          activeRound = i;
+          playTone([520]);
+          updateUI();
+        };
+        grid.appendChild(coin);
+      }
+    }
+
+    function updateUI() {
+      document.getElementById('scoreLeft').textContent = String(scoreLeft).padStart(2, '0');
+      document.getElementById('scoreRight').textContent = String(scoreRight).padStart(2, '0');
+
+      document.getElementById('captionLeft').textContent = `${scoreLeft} ${scoreLeft === 1 ? 'PUNKT' : 'PUNKTE'}`;
+      document.getElementById('captionRight').textContent = `${scoreRight} ${scoreRight === 1 ? 'PUNKT' : 'PUNKTE'}`;
+
+      const nameL = document.getElementById('nameLeft').textContent.trim();
+      const nameR = document.getElementById('nameRight').textContent.trim();
+
+      const customTitle = gameNames[activeRound] ? ` – ${gameNames[activeRound]}` : '';
+      document.getElementById('activeGameLabel').textContent = `SPIEL ${activeRound}${customTitle} (${activeRound} PKT)`;
+
+      document.getElementById('awardLeftBtn').textContent = `+${activeRound} AN ${nameL}`;
+      document.getElementById('awardRightBtn').textContent = `+${activeRound} AN ${nameR}`;
+
+      // Matchball check (61 points to win)
+      const pill = document.getElementById('matchballPill');
+      const title = document.getElementById('matchballTitle');
+      const needL = 61 - scoreLeft;
+      const needR = 61 - scoreRight;
+
+      if (scoreLeft >= 61 || scoreRight >= 61) {
+        title.textContent = 'ENTSCHEIDUNG';
+        pill.textContent = 'SIEG ERREICHT!';
+        pill.classList.add('alert');
+      } else if ((needL > 0 && needL <= activeRound) || (needR > 0 && needR <= activeRound)) {
+        title.textContent = '⚡ MATCHBALL ⚡';
+        pill.textContent = `SPIEL ${activeRound} ENTSCHEIDET!`;
+        pill.classList.add('alert');
+      } else {
+        title.textContent = 'MATCHBALL';
+        pill.textContent = '61 PUNKTE';
+        pill.classList.remove('alert');
+      }
+
+      renderCoins();
+
+      if (!winnerAnnounced && (scoreLeft >= 61 || scoreRight >= 61)) {
+        winnerAnnounced = true;
+        const winner = scoreLeft >= 61 ? nameL : nameR;
+        document.getElementById('winnerNameText').textContent = winner;
+        document.getElementById('winnerOverlay').classList.add('show');
+        playTone([440, 554, 659, 880], 0.35);
+      }
+    }
+
+    function changeScore(side, delta) {
+      if (side === 'Left') {
+        scoreLeft = Math.max(0, scoreLeft + delta);
+      } else {
+        scoreRight = Math.max(0, scoreRight + delta);
+      }
+      playTone(delta > 0 ? [440, 660] : [330, 240]);
+      updateUI();
+    }
+
+    function awardRound(side) {
+      const prevWinner = roundWinners[activeRound];
+      if (prevWinner === 'Left') scoreLeft = Math.max(0, scoreLeft - activeRound);
+      if (prevWinner === 'Right') scoreRight = Math.max(0, scoreRight - activeRound);
+
+      roundWinners[activeRound] = side;
+      if (side === 'Left') scoreLeft += activeRound;
+      else scoreRight += activeRound;
+
+      playTone([392, 523, 659], 0.22);
+
+      if (activeRound < 15 && scoreLeft < 61 && scoreRight < 61) {
+        activeRound++;
+      }
+      updateUI();
+    }
+
+    function stepRound(dir) {
+      activeRound = Math.min(15, Math.max(1, activeRound + dir));
+      playTone([480]);
+      updateUI();
+    }
+
+    function editName(side) {
+      const el = document.getElementById('name' + side);
+      const next = prompt('Neuen Namen eingeben:', el.textContent);
+      if (next && next.trim()) {
+        el.textContent = next.trim().toUpperCase();
+        updateUI();
+      }
+    }
+
+    function editGameTitle() {
+      const current = gameNames[activeRound] || '';
+      const next = prompt(`Titel für Spiel ${activeRound} eingeben (z.B. "Blamieren oder Kassieren"):`, current);
+      if (next !== null) {
+        gameNames[activeRound] = next.trim().toUpperCase();
+        updateUI();
+      }
+    }
+
+    function resetGame() {
+      if (!confirm('Wirklich alle Punkte und Spielstände zurücksetzen?')) return;
+      scoreLeft = 0;
+      scoreRight = 0;
+      activeRound = 1;
+      winnerAnnounced = false;
+      for (const k in roundWinners) delete roundWinners[k];
+      document.getElementById('winnerOverlay').classList.remove('show');
+      updateUI();
+    }
+
+    function closeWinner() {
+      document.getElementById('winnerOverlay').classList.remove('show');
+    }
+
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      document.getElementById('soundBtn').textContent = soundEnabled ? '🔊 Ton: AN' : '🔇 Ton: AUS';
+    }
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen().catch(() => {});
+      }
+    }
+
+    updateUI();
+  </script>
+</body>
+</html>ss
